@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useGame } from '../hooks/useGame';
 import { Hand } from './Hand';
 import { Controls } from './Controls';
@@ -22,6 +22,9 @@ export function Game() {
     dealerUpCard: Card | null;
   }>({ playerHand: [], dealerUpCard: null });
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showCorrectMessage, setShowCorrectMessage] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Deal initial hand on mount
   useEffect(() => {
@@ -35,9 +38,55 @@ export function Game() {
         playerHand: state.playerHand,
         dealerUpCard: state.dealerHand[0] || null,
       });
-      setShowFeedback(true);
+
+      if (state.isCorrect) {
+        // For correct moves, show inline message briefly
+        setShowCorrectMessage(true);
+        const timer = setTimeout(() => {
+          setShowCorrectMessage(false);
+        }, 1000);
+        return () => clearTimeout(timer);
+      } else {
+        // For incorrect moves, show the modal
+        setShowFeedback(true);
+      }
     }
   }, [state.isCorrect, state.lastAction]);
+
+  // Auto-deal countdown when hand is complete
+  useEffect(() => {
+    // Start countdown when: game is in result phase, no feedback showing, no correct message
+    if (state.gamePhase === 'result' && !showFeedback && !showCorrectMessage) {
+      setCountdown(3);
+
+      countdownRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev === null || prev <= 1) {
+            if (countdownRef.current) {
+              clearInterval(countdownRef.current);
+              countdownRef.current = null;
+            }
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      const dealTimer = setTimeout(() => {
+        dealNewHand();
+        setCountdown(null);
+      }, 3000);
+
+      return () => {
+        clearTimeout(dealTimer);
+        if (countdownRef.current) {
+          clearInterval(countdownRef.current);
+          countdownRef.current = null;
+        }
+        setCountdown(null);
+      };
+    }
+  }, [state.gamePhase, showFeedback, showCorrectMessage, dealNewHand]);
 
   const dismissFeedback = useCallback(() => {
     setShowFeedback(false);
@@ -69,9 +118,15 @@ export function Game() {
 
         {/* Status - Middle */}
         <div className="shrink-0 px-3 py-2 flex items-center justify-center">
-          <div className="text-gray-400 text-sm sm:text-lg text-center">
-            {isPlaying ? 'Make your decision...' : 'Press Deal to start'}
-          </div>
+          {showCorrectMessage ? (
+            <div className="text-green-400 text-2xl sm:text-3xl font-bold animate-pulse">
+              ✓ Correct!
+            </div>
+          ) : (
+            <div className="text-gray-400 text-sm sm:text-lg text-center">
+              {isPlaying ? 'Make your decision...' : countdown !== null ? `Dealing in ${countdown}...` : 'Press Deal to start'}
+            </div>
+          )}
         </div>
 
         {/* Player Section - Bottom */}
@@ -97,7 +152,7 @@ export function Game() {
               onClick={dealNewHand}
               className="w-full max-w-sm px-8 py-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-lg rounded-xl transition-colors shadow-lg"
             >
-              Deal New Hand
+              {countdown !== null ? `Deal New Hand (${countdown})` : 'Deal New Hand'}
             </button>
           </div>
         )}
