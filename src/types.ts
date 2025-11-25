@@ -62,3 +62,13 @@ export const DEFAULT_CASINO_RULES: CasinoRules = {
   doubleOn: 'any',
   surrenderAllowed: false,
 };
+
+// Mistake tracking for incorrect decisions
+export interface Mistake {
+  id: string;
+  timestamp: number;
+  playerHand: Card[];
+  dealerUpCard: Card;
+  actionTaken: Action;
+  correctAction: Action;
+}
