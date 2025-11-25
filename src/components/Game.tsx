@@ -74,9 +74,9 @@ export function Game() {
   // Auto-deal countdown when hand is complete
   useEffect(() => {
     // Start countdown when game is in result phase and correct message is done
-    // For incorrect answers, give more time (5s) to read the explanation
-    if (state.gamePhase === 'result' && !showCorrectMessage) {
-      const delayTime = showFeedback ? 5 : 3;
+    // Only auto-deal for correct answers - let user take their time on wrong answers
+    if (state.gamePhase === 'result' && !showCorrectMessage && !showFeedback) {
+      const delayTime = 3;
       setCountdown(delayTime);
 
       countdownRef.current = setInterval(() => {
@@ -175,7 +175,10 @@ export function Game() {
         ) : (
           <div className="flex justify-center">
             <button
-              onClick={dealNewHand}
+              onClick={() => {
+                dealNewHand();
+                setShowFeedback(false);
+              }}
               className="w-full max-w-sm px-8 py-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-lg rounded-xl transition-colors shadow-lg"
             >
               {countdown !== null ? `Deal New Hand (${countdown})` : 'Deal New Hand'}
