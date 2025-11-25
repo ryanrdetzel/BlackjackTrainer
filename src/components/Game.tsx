@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useGame } from '../hooks/useGame';
+import { useMistakes } from '../hooks/useMistakes';
 import { Hand } from './Hand';
 import { Controls } from './Controls';
 import { Feedback } from './Feedback';
@@ -16,6 +17,8 @@ export function Game() {
     canDoubleDown,
     canSplitHand,
   } = useGame();
+
+  const { addMistake } = useMistakes();
 
   // Track the hand that was played for showing in modal
   const [feedbackHand, setFeedbackHand] = useState<{
@@ -35,9 +38,11 @@ export function Game() {
   // Show feedback when a result is available
   useEffect(() => {
     if (state.isCorrect !== null && state.lastAction !== null) {
+      const dealerUpCard = state.dealerHand[0] || null;
+
       setFeedbackHand({
         playerHand: state.playerHand,
-        dealerUpCard: state.dealerHand[0] || null,
+        dealerUpCard,
       });
 
       if (state.isCorrect) {
@@ -48,11 +53,19 @@ export function Game() {
         }, 1000);
         return () => clearTimeout(timer);
       } else {
-        // For incorrect moves, show the modal
+        // For incorrect moves, save to mistakes and show the modal
+        if (dealerUpCard && state.correctAction) {
+          addMistake(
+            state.playerHand,
+            dealerUpCard,
+            state.lastAction,
+            state.correctAction
+          );
+        }
         setShowFeedback(true);
       }
     }
-  }, [state.isCorrect, state.lastAction]);
+  }, [state.isCorrect, state.lastAction, state.playerHand, state.dealerHand, state.correctAction, addMistake]);
 
   // Auto-deal countdown when hand is complete
   useEffect(() => {
