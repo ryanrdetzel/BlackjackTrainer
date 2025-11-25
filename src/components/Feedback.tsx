@@ -10,6 +10,8 @@ interface FeedbackProps {
   onDismiss: () => void;
 }
 
+// This component now only shows for incorrect answers
+// Correct feedback is shown inline on the table
 export function Feedback({
   isCorrect,
   lastAction,
@@ -18,39 +20,13 @@ export function Feedback({
   dealerUpCard,
   onDismiss,
 }: FeedbackProps) {
-  if (isCorrect === null || lastAction === null || correctAction === null || !dealerUpCard) {
+  if (isCorrect === null || isCorrect === true || lastAction === null || correctAction === null || !dealerUpCard) {
     return null;
   }
 
   const explanation = getStrategyExplanation(playerHand, dealerUpCard, correctAction);
 
-  // For correct answers, show a simple toast-style notification
-  if (isCorrect) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/40" onClick={onDismiss} />
-        <div className="relative bg-green-900 border-2 border-green-500 rounded-xl shadow-2xl p-4 sm:p-6 max-w-sm w-full mx-4 text-center">
-          <div className="text-green-300 mb-3">
-            <span className="text-4xl">✓</span>
-          </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-green-300 mb-2">
-            Correct!
-          </h3>
-          <p className="text-green-200 text-sm sm:text-base">
-            {getActionName(lastAction)} was the right play.
-          </p>
-          <button
-            onClick={onDismiss}
-            className="mt-4 w-full py-3 bg-green-700 hover:bg-green-600 active:bg-green-800 text-white font-bold rounded-lg transition-colors"
-          >
-            Continue
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // For incorrect answers, show a detailed modal with explanation
+  // Show detailed modal with explanation for incorrect answers
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60" onClick={onDismiss} />
