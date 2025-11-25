@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useGame } from '../hooks/useGame';
 import { Hand } from './Hand';
 import { Controls } from './Controls';
 import { Feedback } from './Feedback';
 import { Stats } from './Stats';
+import type { Card } from '../types';
 
 export function Game() {
   const {
@@ -15,13 +16,34 @@ export function Game() {
     canSplitHand,
   } = useGame();
 
+  // Track the hand that was played for showing in modal
+  const [feedbackHand, setFeedbackHand] = useState<{
+    playerHand: Card[];
+    dealerUpCard: Card | null;
+  }>({ playerHand: [], dealerUpCard: null });
+  const [showFeedback, setShowFeedback] = useState(false);
+
   // Deal initial hand on mount
   useEffect(() => {
     dealNewHand();
   }, []);
 
+  // Show feedback when a result is available
+  useEffect(() => {
+    if (state.isCorrect !== null && state.lastAction !== null) {
+      setFeedbackHand({
+        playerHand: state.playerHand,
+        dealerUpCard: state.dealerHand[0] || null,
+      });
+      setShowFeedback(true);
+    }
+  }, [state.isCorrect, state.lastAction]);
+
+  const dismissFeedback = useCallback(() => {
+    setShowFeedback(false);
+  }, []);
+
   const isPlaying = state.gamePhase === 'playing';
-  const showResult = state.gamePhase === 'result' || state.isCorrect !== null;
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-b from-green-900 to-green-950 flex flex-col overflow-hidden">
@@ -45,19 +67,11 @@ export function Game() {
           )}
         </div>
 
-        {/* Feedback - Middle */}
+        {/* Status - Middle */}
         <div className="shrink-0 px-3 py-2 flex items-center justify-center">
-          {showResult && state.isCorrect !== null ? (
-            <Feedback
-              isCorrect={state.isCorrect}
-              lastAction={state.lastAction}
-              correctAction={state.correctAction}
-            />
-          ) : (
-            <div className="text-gray-400 text-sm sm:text-lg text-center">
-              {isPlaying ? 'Make your decision...' : 'Press Deal to start'}
-            </div>
-          )}
+          <div className="text-gray-400 text-sm sm:text-lg text-center">
+            {isPlaying ? 'Make your decision...' : 'Press Deal to start'}
+          </div>
         </div>
 
         {/* Player Section - Bottom */}
@@ -88,6 +102,18 @@ export function Game() {
           </div>
         )}
       </div>
+
+      {/* Feedback Modal */}
+      {showFeedback && (
+        <Feedback
+          isCorrect={state.isCorrect}
+          lastAction={state.lastAction}
+          correctAction={state.correctAction}
+          playerHand={feedbackHand.playerHand}
+          dealerUpCard={feedbackHand.dealerUpCard}
+          onDismiss={dismissFeedback}
+        />
+      )}
     </div>
   );
 }
