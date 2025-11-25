@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
-import type { Action, GameState } from '../types';
+import type { Action, GameState, StrategyProvider } from '../types';
 import { createShoe, getHandValue, canDouble, canSplit } from '../utils/deck';
-import { getCorrectAction } from '../utils/strategy';
+import { defaultStrategy } from '../strategies';
 
 const INITIAL_STATS = { correct: 0, total: 0 };
 
@@ -18,7 +18,7 @@ function createInitialState(): GameState {
   };
 }
 
-export function useGame() {
+export function useGame(strategy: StrategyProvider = defaultStrategy) {
   const [state, setState] = useState<GameState>(createInitialState);
 
   const dealNewHand = useCallback(() => {
@@ -68,7 +68,8 @@ export function useGame() {
 
       const dealerUpCard = prev.dealerHand[0];
       const canDoubleDown = canDouble(prev.playerHand);
-      const correctAction = getCorrectAction(prev.playerHand, dealerUpCard, canDoubleDown);
+      const canSplitHand = canSplit(prev.playerHand);
+      const correctAction = strategy.getAction(prev.playerHand, dealerUpCard, canDoubleDown, canSplitHand);
       const isCorrect = action === correctAction;
 
       // Update stats
@@ -114,7 +115,7 @@ export function useGame() {
         stats: newStats,
       };
     });
-  }, []);
+  }, [strategy]);
 
   const resetStats = useCallback(() => {
     setState((prev) => ({
@@ -128,6 +129,7 @@ export function useGame() {
 
   return {
     state,
+    strategy,
     dealNewHand,
     makeAction,
     resetStats,
