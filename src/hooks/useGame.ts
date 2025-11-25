@@ -1,13 +1,14 @@
-import { useState, useCallback } from 'react';
-import type { Action, GameState, StrategyProvider } from '../types';
+import { useState, useCallback, useMemo } from 'react';
+import type { Action, GameState, CasinoRules } from '../types';
+import { DEFAULT_CASINO_RULES } from '../types';
 import { createShoe, getHandValue, canDouble, canSplit } from '../utils/deck';
-import { defaultStrategy } from '../strategies';
+import { getStrategyForRules } from '../strategies';
 
 const INITIAL_STATS = { correct: 0, total: 0 };
 
-function createInitialState(): GameState {
+function createInitialState(numDecks: number): GameState {
   return {
-    deck: createShoe(6),
+    deck: createShoe(numDecks),
     playerHand: [],
     dealerHand: [],
     gamePhase: 'betting',
@@ -19,12 +20,15 @@ function createInitialState(): GameState {
   };
 }
 
-export function useGame(strategy: StrategyProvider = defaultStrategy) {
-  const [state, setState] = useState<GameState>(createInitialState);
+export function useGame(rules: CasinoRules = DEFAULT_CASINO_RULES) {
+  const [state, setState] = useState<GameState>(() => createInitialState(rules.numDecks));
+
+  // Get the appropriate strategy based on the rules
+  const strategy = useMemo(() => getStrategyForRules(rules), [rules]);
 
   const dealNewHand = useCallback(() => {
     setState((prev) => {
-      const deck = prev.deck.length < 20 ? createShoe(6) : prev.deck;
+      const deck = prev.deck.length < 20 ? createShoe(rules.numDecks) : prev.deck;
 
       const [playerCard1, deck1] = [deck[0], deck.slice(1)];
       const [dealerCard1, deck2] = [deck1[0], deck1.slice(1)];
@@ -63,14 +67,32 @@ export function useGame(strategy: StrategyProvider = defaultStrategy) {
         originalPlayerHand: null,
       };
     });
-  }, []);
+  }, [rules.numDecks]);
+
+  // Check if doubling is allowed based on rules and hand value
+  const canDoubleWithRules = useCallback((hand: typeof state.playerHand): boolean => {
+    if (!canDouble(hand)) return false;
+
+    const handValue = getHandValue(hand);
+    const total = handValue.value;
+
+    switch (rules.doubleOn) {
+      case '9-11':
+        return total >= 9 && total <= 11;
+      case '10-11':
+        return total >= 10 && total <= 11;
+      case 'any':
+      default:
+        return true;
+    }
+  }, [rules.doubleOn]);
 
   const makeAction = useCallback((action: Action) => {
     setState((prev) => {
       if (prev.gamePhase !== 'playing') return prev;
 
       const dealerUpCard = prev.dealerHand[0];
-      const canDoubleDown = canDouble(prev.playerHand);
+      const canDoubleDown = canDoubleWithRules(prev.playerHand);
       const canSplitHand = canSplit(prev.playerHand);
       const correctAction = strategy.getAction(prev.playerHand, dealerUpCard, canDoubleDown, canSplitHand);
       const isCorrect = action === correctAction;
@@ -119,7 +141,7 @@ export function useGame(strategy: StrategyProvider = defaultStrategy) {
         stats: newStats,
       };
     });
-  }, [strategy]);
+  }, [strategy, canDoubleWithRules]);
 
   const resetStats = useCallback(() => {
     setState((prev) => ({
@@ -134,12 +156,13 @@ export function useGame(strategy: StrategyProvider = defaultStrategy) {
   return {
     state,
     strategy,
+    rules,
     dealNewHand,
     makeAction,
     resetStats,
     playerHandValue,
     dealerUpCardValue,
-    canDoubleDown: canDouble(state.playerHand),
+    canDoubleDown: canDoubleWithRules(state.playerHand),
     canSplitHand: canSplit(state.playerHand),
   };
 }
