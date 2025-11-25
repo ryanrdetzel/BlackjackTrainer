@@ -9,6 +9,7 @@ import type { Card } from '../types';
 export function Game() {
   const {
     state,
+    strategy,
     dealNewHand,
     makeAction,
     resetStats,
@@ -166,6 +167,7 @@ export function Game() {
           correctAction={state.correctAction}
           playerHand={feedbackHand.playerHand}
           dealerUpCard={feedbackHand.dealerUpCard}
+          strategy={strategy}
           onDismiss={dismissFeedback}
         />
       )}

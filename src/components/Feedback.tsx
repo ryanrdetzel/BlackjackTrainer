@@ -1,5 +1,4 @@
-import type { Action, Card } from '../types';
-import { getActionName, getStrategyExplanation } from '../utils/strategy';
+import type { Action, Card, StrategyProvider } from '../types';
 
 interface FeedbackProps {
   isCorrect: boolean | null;
@@ -7,7 +6,17 @@ interface FeedbackProps {
   correctAction: Action | null;
   playerHand: Card[];
   dealerUpCard: Card | null;
+  strategy: StrategyProvider;
   onDismiss: () => void;
+}
+
+function getActionName(action: Action): string {
+  switch (action) {
+    case 'hit': return 'Hit';
+    case 'stand': return 'Stand';
+    case 'double': return 'Double Down';
+    case 'split': return 'Split';
+  }
 }
 
 // This component now only shows for incorrect answers
@@ -18,13 +27,14 @@ export function Feedback({
   correctAction,
   playerHand,
   dealerUpCard,
+  strategy,
   onDismiss,
 }: FeedbackProps) {
   if (isCorrect === null || isCorrect === true || lastAction === null || correctAction === null || !dealerUpCard) {
     return null;
   }
 
-  const explanation = getStrategyExplanation(playerHand, dealerUpCard, correctAction);
+  const explanation = strategy.getExplanation(playerHand, dealerUpCard, correctAction);
 
   // Show detailed modal with explanation for incorrect answers
   return (
