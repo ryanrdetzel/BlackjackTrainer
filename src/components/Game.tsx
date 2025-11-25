@@ -128,7 +128,7 @@ export function Game() {
               cards={state.dealerHand}
               label="Dealer"
               hideSecondCard={isPlaying}
-              showValue={true}
+              showValue={false}
             />
           )}
         </div>
@@ -158,7 +158,7 @@ export function Game() {
         {/* Player Section - Bottom */}
         <div className="flex-1 flex flex-col items-center justify-center p-3 sm:p-6">
           {state.playerHand.length > 0 && (
-            <Hand cards={state.playerHand} label="Your Hand" showValue={true} />
+            <Hand cards={state.playerHand} label="Your Hand" showValue={false} />
           )}
         </div>
       </main>
