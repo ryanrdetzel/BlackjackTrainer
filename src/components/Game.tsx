@@ -39,9 +39,11 @@ export function Game() {
   useEffect(() => {
     if (state.isCorrect !== null && state.lastAction !== null) {
       const dealerUpCard = state.dealerHand[0] || null;
+      // Use the original hand (before action) for feedback display
+      const handForFeedback = state.originalPlayerHand || state.playerHand;
 
       setFeedbackHand({
-        playerHand: state.playerHand,
+        playerHand: handForFeedback,
         dealerUpCard,
       });
 
@@ -56,7 +58,7 @@ export function Game() {
         // For incorrect moves, save to mistakes and show the modal
         if (dealerUpCard && state.correctAction) {
           addMistake(
-            state.playerHand,
+            handForFeedback,
             dealerUpCard,
             state.lastAction,
             state.correctAction
@@ -65,7 +67,7 @@ export function Game() {
         setShowFeedback(true);
       }
     }
-  }, [state.isCorrect, state.lastAction, state.playerHand, state.dealerHand, state.correctAction, addMistake]);
+  }, [state.isCorrect, state.lastAction, state.playerHand, state.dealerHand, state.correctAction, state.originalPlayerHand, addMistake]);
 
   // Auto-deal countdown when hand is complete
   useEffect(() => {

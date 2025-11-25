@@ -14,6 +14,7 @@ function createInitialState(): GameState {
     lastAction: null,
     correctAction: null,
     isCorrect: null,
+    originalPlayerHand: null,
     stats: INITIAL_STATS,
   };
 }
@@ -23,7 +24,7 @@ export function useGame(strategy: StrategyProvider = defaultStrategy) {
 
   const dealNewHand = useCallback(() => {
     setState((prev) => {
-      let deck = prev.deck.length < 20 ? createShoe(6) : prev.deck;
+      const deck = prev.deck.length < 20 ? createShoe(6) : prev.deck;
 
       const [playerCard1, deck1] = [deck[0], deck.slice(1)];
       const [dealerCard1, deck2] = [deck1[0], deck1.slice(1)];
@@ -46,6 +47,7 @@ export function useGame(strategy: StrategyProvider = defaultStrategy) {
           lastAction: null,
           correctAction: null,
           isCorrect: null,
+          originalPlayerHand: null,
         };
       }
 
@@ -58,6 +60,7 @@ export function useGame(strategy: StrategyProvider = defaultStrategy) {
         lastAction: null,
         correctAction: null,
         isCorrect: null,
+        originalPlayerHand: null,
       };
     });
   }, []);
@@ -112,6 +115,7 @@ export function useGame(strategy: StrategyProvider = defaultStrategy) {
         lastAction: action,
         correctAction,
         isCorrect,
+        originalPlayerHand: prev.playerHand,
         stats: newStats,
       };
     });

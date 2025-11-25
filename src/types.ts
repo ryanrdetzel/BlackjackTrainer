@@ -16,6 +16,7 @@ export interface GameState {
   lastAction: Action | null;
   correctAction: Action | null;
   isCorrect: boolean | null;
+  originalPlayerHand: Card[] | null; // Hand before action was taken (for feedback display)
   stats: {
     correct: number;
     total: number;
