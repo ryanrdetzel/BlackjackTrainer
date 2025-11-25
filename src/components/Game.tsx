@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useGame } from '../hooks/useGame';
 import { useMistakes } from '../hooks/useMistakes';
 import { Hand } from './Hand';
@@ -20,7 +20,7 @@ export function Game() {
 
   const { addMistake } = useMistakes();
 
-  // Track the hand that was played for showing in modal
+  // Track the hand that was played for showing feedback
   const [feedbackHand, setFeedbackHand] = useState<{
     playerHand: Card[];
     dealerUpCard: Card | null;
@@ -50,12 +50,13 @@ export function Game() {
       if (state.isCorrect) {
         // For correct moves, show inline message briefly
         setShowCorrectMessage(true);
+        setShowFeedback(false);
         const timer = setTimeout(() => {
           setShowCorrectMessage(false);
         }, 1000);
         return () => clearTimeout(timer);
       } else {
-        // For incorrect moves, save to mistakes and show the modal
+        // For incorrect moves, save to mistakes and show inline feedback
         if (dealerUpCard && state.correctAction) {
           addMistake(
             handForFeedback,
@@ -65,15 +66,18 @@ export function Game() {
           );
         }
         setShowFeedback(true);
+        setShowCorrectMessage(false);
       }
     }
   }, [state.isCorrect, state.lastAction, state.playerHand, state.dealerHand, state.correctAction, state.originalPlayerHand, addMistake]);
 
   // Auto-deal countdown when hand is complete
   useEffect(() => {
-    // Start countdown when: game is in result phase, no feedback showing, no correct message
-    if (state.gamePhase === 'result' && !showFeedback && !showCorrectMessage) {
-      setCountdown(3);
+    // Start countdown when game is in result phase and correct message is done
+    // For incorrect answers, give more time (5s) to read the explanation
+    if (state.gamePhase === 'result' && !showCorrectMessage) {
+      const delayTime = showFeedback ? 5 : 3;
+      setCountdown(delayTime);
 
       countdownRef.current = setInterval(() => {
         setCountdown((prev) => {
@@ -91,7 +95,8 @@ export function Game() {
       const dealTimer = setTimeout(() => {
         dealNewHand();
         setCountdown(null);
-      }, 3000);
+        setShowFeedback(false);
+      }, delayTime * 1000);
 
       return () => {
         clearTimeout(dealTimer);
@@ -103,10 +108,6 @@ export function Game() {
       };
     }
   }, [state.gamePhase, showFeedback, showCorrectMessage, dealNewHand]);
-
-  const dismissFeedback = useCallback(() => {
-    setShowFeedback(false);
-  }, []);
 
   const isPlaying = state.gamePhase === 'playing';
 
@@ -132,12 +133,21 @@ export function Game() {
           )}
         </div>
 
-        {/* Status - Middle */}
-        <div className="shrink-0 px-3 py-2 flex items-center justify-center">
+        {/* Status / Feedback - Middle */}
+        <div className="shrink-0 px-3 py-2 flex flex-col items-center justify-center gap-2">
           {showCorrectMessage ? (
             <div className="text-green-400 text-2xl sm:text-3xl font-bold animate-pulse">
               ✓ Correct!
             </div>
+          ) : showFeedback ? (
+            <Feedback
+              isCorrect={state.isCorrect}
+              lastAction={state.lastAction}
+              correctAction={state.correctAction}
+              playerHand={feedbackHand.playerHand}
+              dealerUpCard={feedbackHand.dealerUpCard}
+              strategy={strategy}
+            />
           ) : (
             <div className="text-gray-400 text-sm sm:text-lg text-center">
               {isPlaying ? 'Make your decision...' : countdown !== null ? `Dealing in ${countdown}...` : 'Press Deal to start'}
@@ -174,18 +184,6 @@ export function Game() {
         )}
       </div>
 
-      {/* Feedback Modal */}
-      {showFeedback && (
-        <Feedback
-          isCorrect={state.isCorrect}
-          lastAction={state.lastAction}
-          correctAction={state.correctAction}
-          playerHand={feedbackHand.playerHand}
-          dealerUpCard={feedbackHand.dealerUpCard}
-          strategy={strategy}
-          onDismiss={dismissFeedback}
-        />
-      )}
     </div>
   );
 }

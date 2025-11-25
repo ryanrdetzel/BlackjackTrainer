@@ -7,7 +7,6 @@ interface FeedbackProps {
   playerHand: Card[];
   dealerUpCard: Card | null;
   strategy: StrategyProvider;
-  onDismiss: () => void;
 }
 
 function getActionName(action: Action): string {
@@ -19,8 +18,7 @@ function getActionName(action: Action): string {
   }
 }
 
-// This component now only shows for incorrect answers
-// Correct feedback is shown inline on the table
+// Inline feedback component shown between dealer and player
 export function Feedback({
   isCorrect,
   lastAction,
@@ -28,7 +26,6 @@ export function Feedback({
   playerHand,
   dealerUpCard,
   strategy,
-  onDismiss,
 }: FeedbackProps) {
   if (isCorrect === null || isCorrect === true || lastAction === null || correctAction === null || !dealerUpCard) {
     return null;
@@ -36,47 +33,29 @@ export function Feedback({
 
   const explanation = strategy.getExplanation(playerHand, dealerUpCard, correctAction);
 
-  // Show detailed modal with explanation for incorrect answers
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60" onClick={onDismiss} />
-      <div className="relative bg-gray-900 border-2 border-red-500 rounded-xl shadow-2xl p-4 sm:p-6 max-w-md w-full mx-4 max-h-[85vh] overflow-y-auto">
-        <div className="text-red-400 mb-3 text-center">
-          <span className="text-4xl">✗</span>
-        </div>
-
-        <h3 className="text-xl sm:text-2xl font-bold text-red-400 text-center mb-4">
-          Incorrect
-        </h3>
-
-        <div className="space-y-4">
-          <div className="bg-gray-800 rounded-lg p-3 sm:p-4">
-            <div className="flex justify-between items-center text-sm sm:text-base">
-              <span className="text-gray-400">You chose:</span>
-              <span className="text-red-400 font-semibold">{getActionName(lastAction)}</span>
-            </div>
-            <div className="flex justify-between items-center text-sm sm:text-base mt-2">
-              <span className="text-gray-400">Correct play:</span>
-              <span className="text-green-400 font-semibold">{getActionName(correctAction)}</span>
-            </div>
-          </div>
-
-          <div className="bg-gray-800/50 rounded-lg p-3 sm:p-4">
-            <h4 className="text-yellow-400 font-semibold text-sm sm:text-base mb-2">
-              Why {getActionName(correctAction).toLowerCase()}?
-            </h4>
-            <p className="text-gray-300 text-sm sm:text-base leading-relaxed">
-              {explanation}
-            </p>
+    <div className="w-full max-w-md mx-auto px-3">
+      <div className="bg-gray-900/95 border border-red-500/50 rounded-lg p-3 shadow-lg">
+        {/* Header with X and action comparison */}
+        <div className="flex items-center gap-3 mb-2">
+          <span className="text-red-400 text-2xl shrink-0">✗</span>
+          <div className="flex-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span className="text-gray-400">
+              You: <span className="text-red-400 font-semibold">{getActionName(lastAction)}</span>
+            </span>
+            <span className="text-gray-500">→</span>
+            <span className="text-gray-400">
+              Correct: <span className="text-green-400 font-semibold">{getActionName(correctAction)}</span>
+            </span>
           </div>
         </div>
 
-        <button
-          onClick={onDismiss}
-          className="mt-5 w-full py-3 sm:py-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-base sm:text-lg rounded-lg transition-colors"
-        >
-          Got it
-        </button>
+        {/* Explanation */}
+        <div className="bg-gray-800/50 rounded p-2">
+          <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
+            <span className="text-yellow-400 font-medium">Why?</span> {explanation}
+          </p>
+        </div>
       </div>
     </div>
   );
