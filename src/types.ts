@@ -28,6 +28,18 @@ export interface HandValue {
   isSoft: boolean;
 }
 
+// Shoe modes for different practice scenarios
+export type ShoeMode =
+  | 'standard'           // Normal shoe
+  | 'no-tens'           // No 10s, J, Q, K (practice low cards)
+  | 'wrong-history'     // Based on mistake history
+  | 'soft-heavy'        // More Aces for soft hand practice
+  | 'splits'            // More pairs for split practice
+  | 'hard-12-16'        // Focus on hard 12-16 decisions
+  | 'dealer-ace-ten'    // More dealer Ace/10 scenarios
+  | 'doubling'          // Focus on doubling situations (9, 10, 11)
+  | 'stiff-hands';      // Hard 12-16 vs dealer 2-6
+
 // Casino rule configurations that affect basic strategy
 export interface CasinoRules {
   numDecks: 1 | 2 | 4 | 6 | 8;
@@ -35,6 +47,7 @@ export interface CasinoRules {
   doubleAfterSplit: boolean;
   doubleOn: 'any' | '9-11' | '10-11';
   surrenderAllowed: boolean;
+  shoeMode: ShoeMode;
 }
 
 // Strategy provider interface for swappable strategies
@@ -62,6 +75,7 @@ export const DEFAULT_CASINO_RULES: CasinoRules = {
   doubleAfterSplit: true,
   doubleOn: 'any',
   surrenderAllowed: false,
+  shoeMode: 'standard',
 };
 
 // Mistake tracking for incorrect decisions

@@ -6,9 +6,9 @@ import { getStrategyForRules } from '../strategies';
 
 const INITIAL_STATS = { correct: 0, total: 0 };
 
-function createInitialState(numDecks: number): GameState {
+function createInitialState(rules: CasinoRules): GameState {
   return {
-    deck: createShoe(numDecks),
+    deck: createShoe(rules.numDecks, rules.shoeMode),
     playerHand: [],
     dealerHand: [],
     gamePhase: 'betting',
@@ -21,14 +21,14 @@ function createInitialState(numDecks: number): GameState {
 }
 
 export function useGame(rules: CasinoRules = DEFAULT_CASINO_RULES) {
-  const [state, setState] = useState<GameState>(() => createInitialState(rules.numDecks));
+  const [state, setState] = useState<GameState>(() => createInitialState(rules));
 
   // Get the appropriate strategy based on the rules
   const strategy = useMemo(() => getStrategyForRules(rules), [rules]);
 
   const dealNewHand = useCallback(() => {
     setState((prev) => {
-      const deck = prev.deck.length < 20 ? createShoe(rules.numDecks) : prev.deck;
+      const deck = prev.deck.length < 20 ? createShoe(rules.numDecks, rules.shoeMode) : prev.deck;
 
       const [playerCard1, deck1] = [deck[0], deck.slice(1)];
       const [dealerCard1, deck2] = [deck1[0], deck1.slice(1)];
@@ -67,7 +67,7 @@ export function useGame(rules: CasinoRules = DEFAULT_CASINO_RULES) {
         originalPlayerHand: null,
       };
     });
-  }, [rules.numDecks]);
+  }, [rules.numDecks, rules.shoeMode]);
 
   // Check if doubling is allowed based on rules and hand value
   const canDoubleWithRules = useCallback((hand: typeof state.playerHand): boolean => {
