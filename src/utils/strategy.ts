@@ -36,7 +36,7 @@ const SOFT_STRATEGY: Record<number, Record<number, Action>> = {
   15: { 2: 'hit', 3: 'hit', 4: 'double', 5: 'double', 6: 'double', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
   16: { 2: 'hit', 3: 'hit', 4: 'double', 5: 'double', 6: 'double', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
   17: { 2: 'hit', 3: 'double', 4: 'double', 5: 'double', 6: 'double', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-  18: { 2: 'double', 3: 'double', 4: 'double', 5: 'double', 6: 'double', 7: 'stand', 8: 'stand', 9: 'hit', 10: 'hit', 11: 'hit' },
+  18: { 2: 'stand', 3: 'double', 4: 'double', 5: 'double', 6: 'double', 7: 'stand', 8: 'stand', 9: 'hit', 10: 'hit', 11: 'hit' },
   19: { 2: 'stand', 3: 'stand', 4: 'stand', 5: 'stand', 6: 'double', 7: 'stand', 8: 'stand', 9: 'stand', 10: 'stand', 11: 'stand' },
   20: { 2: 'stand', 3: 'stand', 4: 'stand', 5: 'stand', 6: 'stand', 7: 'stand', 8: 'stand', 9: 'stand', 10: 'stand', 11: 'stand' },
   21: { 2: 'stand', 3: 'stand', 4: 'stand', 5: 'stand', 6: 'stand', 7: 'stand', 8: 'stand', 9: 'stand', 10: 'stand', 11: 'stand' },
@@ -85,8 +85,8 @@ export function getCorrectAction(playerHand: Card[], dealerUpCard: Card, canDoub
     if (softAction) {
       if (softAction === 'double' && !canDoubleDown) {
         // If we can't double, check if we should hit or stand instead
-        // For soft hands, if double is recommended but not available, usually hit
-        if (handValue.value >= 19) return 'stand';
+        // For soft 18+, stand when doubling isn't available. For soft 17 or less, hit.
+        if (handValue.value >= 18) return 'stand';
         return 'hit';
       }
       return softAction;
@@ -174,7 +174,10 @@ export function getStrategyExplanation(
       if (handValue.value <= 17) {
         return `Hit on soft ${handValue.value}. Your hand is too weak to stand, but the ace gives you flexibility. You can't bust on the next card, so try to improve.`;
       }
-      return `Hit on soft ${handValue.value} against dealer ${dealerCardName}. Against a strong dealer card (9, 10, A), soft 18 isn't strong enough to stand. Try to improve.`;
+      if (dealerValue >= 9) {
+        return `Hit on soft ${handValue.value} against dealer ${dealerCardName}. Against a strong dealer card (9, 10, A), soft 18 isn't strong enough to stand. Try to improve.`;
+      }
+      return `Hit on soft ${handValue.value} against dealer ${dealerCardName}. Try to improve your hand.`;
     }
     if (correctAction === 'stand') {
       return `Stand on soft ${handValue.value}. This is a strong enough total, and the risk of hitting and getting a worse hand outweighs the potential benefit.`;
