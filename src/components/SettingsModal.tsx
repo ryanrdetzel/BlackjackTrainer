@@ -1,4 +1,4 @@
-import type { CasinoRules } from '../types';
+import type { CasinoRules, ShoeMode } from '../types';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -192,6 +192,40 @@ export function SettingsModal({
                 Not Allowed
               </button>
             </div>
+          </div>
+
+          {/* Practice Mode / Shoe Mode */}
+          <div className="space-y-2">
+            <label htmlFor="shoe-mode" className="block text-sm font-medium text-gray-300">
+              Practice Mode
+            </label>
+            <select
+              id="shoe-mode"
+              value={settings.shoeMode}
+              onChange={(e) => onUpdateSettings({ shoeMode: e.target.value as ShoeMode })}
+              className="w-full py-2 px-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none transition-colors"
+            >
+              <option value="standard">Standard (Normal Shoe)</option>
+              <option value="no-tens">No 10s (Low Cards Only)</option>
+              <option value="wrong-history">Wrong History (Your Mistakes)</option>
+              <option value="soft-heavy">Soft Heavy (More Aces)</option>
+              <option value="splits">Splits (More Pairs)</option>
+              <option value="hard-12-16">Hard 12-16 (Tricky Totals)</option>
+              <option value="dealer-ace-ten">Dealer Ace/10 (Tough Dealer)</option>
+              <option value="doubling">Doubling (9, 10, 11 Focus)</option>
+              <option value="stiff-hands">Stiff Hands (12-16 vs 2-6)</option>
+            </select>
+            <p className="text-xs text-gray-500">
+              {settings.shoeMode === 'standard' && 'Normal probability distribution'}
+              {settings.shoeMode === 'no-tens' && 'Practice without 10-value cards'}
+              {settings.shoeMode === 'wrong-history' && 'Focus on hands you\'ve gotten wrong'}
+              {settings.shoeMode === 'soft-heavy' && 'More Aces for soft hand practice'}
+              {settings.shoeMode === 'splits' && 'More pairs to practice splitting'}
+              {settings.shoeMode === 'hard-12-16' && 'Focus on the trickiest decision range'}
+              {settings.shoeMode === 'dealer-ace-ten' && 'Practice vs dealer Ace or 10'}
+              {settings.shoeMode === 'doubling' && 'Practice doubling down situations'}
+              {settings.shoeMode === 'stiff-hands' && 'Practice stiff totals vs weak dealer'}
+            </p>
           </div>
         </div>
 
