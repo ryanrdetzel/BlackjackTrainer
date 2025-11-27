@@ -18,6 +18,7 @@ export class BasicStrategyH17 extends BaseStrategy {
     doubleAfterSplit: true,
     doubleOn: 'any',
     surrenderAllowed: false,
+    shoeMode: 'standard',
   };
 
   // Hard totals are the same as S17
