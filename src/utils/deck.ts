@@ -26,15 +26,6 @@ function loadMistakes(): Mistake[] {
   return [];
 }
 
-// Helper to create multiple cards of a specific rank
-function createCardsOfRank(rank: Rank, count: number): Card[] {
-  const cards: Card[] = [];
-  for (let i = 0; i < count; i++) {
-    cards.push({ suit: SUITS[i % SUITS.length], rank });
-  }
-  return cards;
-}
-
 // Standard shoe creation
 function createStandardShoe(numDecks: number): Card[] {
   const shoe: Card[] = [];

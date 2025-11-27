@@ -17,6 +17,7 @@ export class BasicStrategyS17 extends BaseStrategy {
     doubleAfterSplit: true,
     doubleOn: 'any',
     surrenderAllowed: false,
+    shoeMode: 'standard',
   };
 
   // Hard totals: player hand value vs dealer upcard (2-11 for Ace)
