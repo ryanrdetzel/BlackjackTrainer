@@ -46,7 +46,8 @@ export abstract class BaseStrategy implements StrategyProvider {
       if (softAction) {
         if (softAction === 'double' && !canDoubleDown) {
           // If we can't double, check if we should hit or stand instead
-          if (handValue.value >= 19) return 'stand';
+          // For soft 18+, stand when doubling isn't available. For soft 17 or less, hit.
+          if (handValue.value >= 18) return 'stand';
           return 'hit';
         }
         return softAction;
