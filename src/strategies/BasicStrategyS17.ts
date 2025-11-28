@@ -1,5 +1,6 @@
-import type { CasinoRules } from '../types';
+import type { CasinoRules, Action as GameAction } from '../types';
 import { BaseStrategy, type StrategyTable } from './BaseStrategy';
+import { basicStrategy, type Action as ChartAction } from '../utils/blackjackBasicStrategy';
 
 /**
  * Basic Strategy for multi-deck (4-8 decks) where dealer STANDS on soft 17 (S17)
@@ -20,55 +21,163 @@ export class BasicStrategyS17 extends BaseStrategy {
     shoeMode: 'standard',
   };
 
+  /**
+   * Convert chart action to game action
+   * @param chartAction Action from the strategy chart (H, S, D, Ds, Y, N, Y_N, SUR, "")
+   * @param dealerAfterSplit Whether double after split is allowed (for Y_N)
+   * @param fallbackAction Fallback action if chart action doesn't result in split
+   */
+  private chartActionToGameAction(
+    chartAction: ChartAction,
+    doubleAfterSplit: boolean = true,
+    fallbackAction?: GameAction
+  ): GameAction | null {
+    switch (chartAction) {
+      case 'H': return 'hit';
+      case 'S': return 'stand';
+      case 'D': return 'double';
+      case 'Ds': return 'double'; // Will be handled by BaseStrategy to fall back to stand if can't double
+      case 'Y': return 'split';
+      case 'N': return null; // Fall through to soft/hard strategy
+      case 'Y_N': return doubleAfterSplit ? 'split' : null; // Split if DAS, otherwise fall through
+      case 'SUR': return 'hit'; // Surrender not supported yet, default to hit
+      case '': return fallbackAction || null;
+      default: return null;
+    }
+  }
+
+  /**
+   * Get dealer upcard index for the chart (0-9 for dealer upcards 2-A)
+   */
+  private getDealerIndex(dealerValue: number): number {
+    // dealerValue is 2-11 (11 for Ace)
+    // Chart indices: 0=2, 1=3, 2=4, 3=5, 4=6, 5=7, 6=8, 7=9, 8=10, 9=A
+    if (dealerValue === 11) return 9; // Ace
+    return dealerValue - 2; // 2-10
+  }
+
   // Hard totals: player hand value vs dealer upcard (2-11 for Ace)
-  protected hardStrategy: StrategyTable = {
-    4:  { 2: 'hit', 3: 'hit', 4: 'hit', 5: 'hit', 6: 'hit', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    5:  { 2: 'hit', 3: 'hit', 4: 'hit', 5: 'hit', 6: 'hit', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    6:  { 2: 'hit', 3: 'hit', 4: 'hit', 5: 'hit', 6: 'hit', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    7:  { 2: 'hit', 3: 'hit', 4: 'hit', 5: 'hit', 6: 'hit', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    8:  { 2: 'hit', 3: 'hit', 4: 'hit', 5: 'hit', 6: 'hit', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    9:  { 2: 'hit', 3: 'double', 4: 'double', 5: 'double', 6: 'double', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    10: { 2: 'double', 3: 'double', 4: 'double', 5: 'double', 6: 'double', 7: 'double', 8: 'double', 9: 'double', 10: 'hit', 11: 'hit' },
-    11: { 2: 'double', 3: 'double', 4: 'double', 5: 'double', 6: 'double', 7: 'double', 8: 'double', 9: 'double', 10: 'double', 11: 'double' },
-    12: { 2: 'hit', 3: 'hit', 4: 'stand', 5: 'stand', 6: 'stand', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    13: { 2: 'stand', 3: 'stand', 4: 'stand', 5: 'stand', 6: 'stand', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    14: { 2: 'stand', 3: 'stand', 4: 'stand', 5: 'stand', 6: 'stand', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    15: { 2: 'stand', 3: 'stand', 4: 'stand', 5: 'stand', 6: 'stand', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    16: { 2: 'stand', 3: 'stand', 4: 'stand', 5: 'stand', 6: 'stand', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    17: { 2: 'stand', 3: 'stand', 4: 'stand', 5: 'stand', 6: 'stand', 7: 'stand', 8: 'stand', 9: 'stand', 10: 'stand', 11: 'stand' },
-    18: { 2: 'stand', 3: 'stand', 4: 'stand', 5: 'stand', 6: 'stand', 7: 'stand', 8: 'stand', 9: 'stand', 10: 'stand', 11: 'stand' },
-    19: { 2: 'stand', 3: 'stand', 4: 'stand', 5: 'stand', 6: 'stand', 7: 'stand', 8: 'stand', 9: 'stand', 10: 'stand', 11: 'stand' },
-    20: { 2: 'stand', 3: 'stand', 4: 'stand', 5: 'stand', 6: 'stand', 7: 'stand', 8: 'stand', 9: 'stand', 10: 'stand', 11: 'stand' },
-    21: { 2: 'stand', 3: 'stand', 4: 'stand', 5: 'stand', 6: 'stand', 7: 'stand', 8: 'stand', 9: 'stand', 10: 'stand', 11: 'stand' },
-  };
+  protected hardStrategy: StrategyTable = (() => {
+    const table: StrategyTable = {};
+
+    // Convert chart hard totals to strategy table
+    for (const [totalStr, actions] of Object.entries(basicStrategy.hardTotals)) {
+      const total = parseInt(totalStr);
+      table[total] = {};
+
+      for (let dealerValue = 2; dealerValue <= 11; dealerValue++) {
+        const idx = this.getDealerIndex(dealerValue);
+        const chartAction = actions[idx];
+        const gameAction = this.chartActionToGameAction(chartAction);
+        table[total][dealerValue] = gameAction || 'hit';
+      }
+    }
+
+    // Add missing hard totals (4-7) that aren't in the chart - all hit
+    for (let total = 4; total <= 7; total++) {
+      if (!table[total]) {
+        table[total] = {};
+        for (let dealerValue = 2; dealerValue <= 11; dealerValue++) {
+          table[total][dealerValue] = 'hit';
+        }
+      }
+    }
+
+    // Add higher totals (18-21) - all stand
+    for (let total = 18; total <= 21; total++) {
+      if (!table[total]) {
+        table[total] = {};
+        for (let dealerValue = 2; dealerValue <= 11; dealerValue++) {
+          table[total][dealerValue] = 'stand';
+        }
+      }
+    }
+
+    return table;
+  })();
 
   // Soft totals: player has ace counted as 11 (A,2 = soft 13, etc)
-  // S17 CORRECT: Soft 18 vs 2 = STAND (not double), Soft 19 vs 6 = STAND (not double)
-  protected softStrategy: StrategyTable = {
-    13: { 2: 'hit', 3: 'hit', 4: 'hit', 5: 'double', 6: 'double', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    14: { 2: 'hit', 3: 'hit', 4: 'hit', 5: 'double', 6: 'double', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    15: { 2: 'hit', 3: 'hit', 4: 'double', 5: 'double', 6: 'double', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    16: { 2: 'hit', 3: 'hit', 4: 'double', 5: 'double', 6: 'double', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    17: { 2: 'hit', 3: 'double', 4: 'double', 5: 'double', 6: 'double', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    18: { 2: 'stand', 3: 'double', 4: 'double', 5: 'double', 6: 'double', 7: 'stand', 8: 'stand', 9: 'hit', 10: 'hit', 11: 'hit' },  // S17: stand vs 2
-    19: { 2: 'stand', 3: 'stand', 4: 'stand', 5: 'stand', 6: 'stand', 7: 'stand', 8: 'stand', 9: 'stand', 10: 'stand', 11: 'stand' },  // S17: stand vs 6 (no double)
-    20: { 2: 'stand', 3: 'stand', 4: 'stand', 5: 'stand', 6: 'stand', 7: 'stand', 8: 'stand', 9: 'stand', 10: 'stand', 11: 'stand' },
-    21: { 2: 'stand', 3: 'stand', 4: 'stand', 5: 'stand', 6: 'stand', 7: 'stand', 8: 'stand', 9: 'stand', 10: 'stand', 11: 'stand' },
-  };
+  protected softStrategy: StrategyTable = (() => {
+    const table: StrategyTable = {};
+
+    // Convert chart soft totals to strategy table
+    // Chart uses "A,2" format, we use soft total (13 for A,2, 14 for A,3, etc.)
+    const softHandMap: Record<string, number> = {
+      'A,2': 13,
+      'A,3': 14,
+      'A,4': 15,
+      'A,5': 16,
+      'A,6': 17,
+      'A,7': 18,
+      'A,8': 19,
+      'A,9': 20,
+    };
+
+    for (const [hand, total] of Object.entries(softHandMap)) {
+      const actions = basicStrategy.softTotals[hand];
+      if (!actions) continue;
+
+      table[total] = {};
+      for (let dealerValue = 2; dealerValue <= 11; dealerValue++) {
+        const idx = this.getDealerIndex(dealerValue);
+        const chartAction = actions[idx];
+        const gameAction = this.chartActionToGameAction(chartAction);
+        table[total][dealerValue] = gameAction || 'stand';
+      }
+    }
+
+    // Add soft 21 - always stand
+    table[21] = {};
+    for (let dealerValue = 2; dealerValue <= 11; dealerValue++) {
+      table[21][dealerValue] = 'stand';
+    }
+
+    return table;
+  })();
 
   // Pairs: what card value the pair consists of (11 = Aces)
-  protected pairStrategy: StrategyTable = {
-    2:  { 2: 'split', 3: 'split', 4: 'split', 5: 'split', 6: 'split', 7: 'split', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    3:  { 2: 'split', 3: 'split', 4: 'split', 5: 'split', 6: 'split', 7: 'split', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    4:  { 2: 'hit', 3: 'hit', 4: 'hit', 5: 'split', 6: 'split', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    5:  { 2: 'double', 3: 'double', 4: 'double', 5: 'double', 6: 'double', 7: 'double', 8: 'double', 9: 'double', 10: 'hit', 11: 'hit' },
-    6:  { 2: 'split', 3: 'split', 4: 'split', 5: 'split', 6: 'split', 7: 'hit', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    7:  { 2: 'split', 3: 'split', 4: 'split', 5: 'split', 6: 'split', 7: 'split', 8: 'hit', 9: 'hit', 10: 'hit', 11: 'hit' },
-    8:  { 2: 'split', 3: 'split', 4: 'split', 5: 'split', 6: 'split', 7: 'split', 8: 'split', 9: 'split', 10: 'split', 11: 'split' },
-    9:  { 2: 'split', 3: 'split', 4: 'split', 5: 'split', 6: 'split', 7: 'stand', 8: 'split', 9: 'split', 10: 'stand', 11: 'stand' },
-    10: { 2: 'stand', 3: 'stand', 4: 'stand', 5: 'stand', 6: 'stand', 7: 'stand', 8: 'stand', 9: 'stand', 10: 'stand', 11: 'stand' },
-    11: { 2: 'split', 3: 'split', 4: 'split', 5: 'split', 6: 'split', 7: 'split', 8: 'split', 9: 'split', 10: 'split', 11: 'split' }, // Aces
-  };
+  protected pairStrategy: StrategyTable = (() => {
+    const table: StrategyTable = {};
+
+    // Map chart pair notation to card values
+    const pairMap: Record<string, number> = {
+      'A,A': 11,
+      'T,T': 10,
+      '9,9': 9,
+      '8,8': 8,
+      '7,7': 7,
+      '6,6': 6,
+      '5,5': 5,
+      '4,4': 4,
+      '3,3': 3,
+      '2,2': 2,
+    };
+
+    for (const [pair, cardValue] of Object.entries(pairMap)) {
+      const actions = basicStrategy.pairSplitting[pair];
+      if (!actions) continue;
+
+      table[cardValue] = {};
+      for (let dealerValue = 2; dealerValue <= 11; dealerValue++) {
+        const idx = this.getDealerIndex(dealerValue);
+        const chartAction = actions[idx];
+        const gameAction = this.chartActionToGameAction(chartAction, this.rules.doubleAfterSplit);
+
+        // For pairs, if chart says don't split, we need to fall through to hard/soft
+        // For now, use the hard total of the pair
+        if (gameAction === null) {
+          // Use hard strategy for the pair total
+          const pairTotal = cardValue === 11 ? 12 : cardValue * 2;
+          const hardAction = this.hardStrategy[pairTotal]?.[dealerValue];
+          table[cardValue][dealerValue] = hardAction || 'hit';
+        } else {
+          table[cardValue][dealerValue] = gameAction;
+        }
+      }
+    }
+
+    return table;
+  })();
 }
 
 // Export singleton instance for convenience
