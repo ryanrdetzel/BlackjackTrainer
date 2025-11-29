@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { Action, GameState, CasinoRules } from '../types';
 import { DEFAULT_CASINO_RULES } from '../types';
-import { createShoe, getHandValue, canDouble, canSplit } from '../utils/deck';
+import { createShoe, getHandValue, canDouble, canSplit, isPair } from '../utils/deck';
 import { getStrategyForRules } from '../strategies';
 
 const INITIAL_STATS = { correct: 0, total: 0 };
@@ -28,15 +28,39 @@ export function useGame(rules: CasinoRules = DEFAULT_CASINO_RULES) {
 
   const dealNewHand = useCallback(() => {
     setState((prev) => {
-      const deck = prev.deck.length < 20 ? createShoe(rules.numDecks, rules.shoeMode) : prev.deck;
+      let deck = prev.deck.length < 20 ? createShoe(rules.numDecks, rules.shoeMode) : prev.deck;
 
-      const [playerCard1, deck1] = [deck[0], deck.slice(1)];
-      const [dealerCard1, deck2] = [deck1[0], deck1.slice(1)];
-      const [playerCard2, deck3] = [deck2[0], deck2.slice(1)];
-      const [dealerCard2, deck4] = [deck3[0], deck3.slice(1)];
+      // For splits mode, we need to find a pair for the player
+      // Try up to 50 times to find a valid hand, then give up and use what we have
+      let playerHand;
+      let dealerHand;
+      let remainingDeck = deck;
+      let attempts = 0;
+      const maxAttempts = 50;
 
-      const playerHand = [playerCard1, playerCard2];
-      const dealerHand = [dealerCard1, dealerCard2];
+      do {
+        // Ensure we have enough cards
+        if (remainingDeck.length < 4) {
+          remainingDeck = createShoe(rules.numDecks, rules.shoeMode);
+        }
+
+        const [playerCard1, deck1] = [remainingDeck[0], remainingDeck.slice(1)];
+        const [dealerCard1, deck2] = [deck1[0], deck1.slice(1)];
+        const [playerCard2, deck3] = [deck2[0], deck2.slice(1)];
+        const [dealerCard2, deck4] = [deck3[0], deck3.slice(1)];
+
+        playerHand = [playerCard1, playerCard2];
+        dealerHand = [dealerCard1, dealerCard2];
+        remainingDeck = deck4;
+        attempts++;
+
+        // For splits mode, require a pair
+        if (rules.shoeMode === 'splits' && !isPair(playerHand) && attempts < maxAttempts) {
+          continue;
+        }
+
+        break;
+      } while (attempts < maxAttempts);
 
       // Check for blackjack
       const playerValue = getHandValue(playerHand);
@@ -44,7 +68,7 @@ export function useGame(rules: CasinoRules = DEFAULT_CASINO_RULES) {
         // Player has blackjack, deal a new hand
         return {
           ...prev,
-          deck: deck4,
+          deck: remainingDeck,
           playerHand,
           dealerHand,
           gamePhase: 'result',
@@ -57,7 +81,7 @@ export function useGame(rules: CasinoRules = DEFAULT_CASINO_RULES) {
 
       return {
         ...prev,
-        deck: deck4,
+        deck: remainingDeck,
         playerHand,
         dealerHand,
         gamePhase: 'playing',
