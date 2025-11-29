@@ -6,6 +6,8 @@ interface SettingsModalProps {
   settings: CasinoRules;
   onUpdateSettings: (updates: Partial<CasinoRules>) => void;
   onResetSettings: () => void;
+  mistakeCount: number;
+  onClearMistakes: () => void;
 }
 
 export function SettingsModal({
@@ -14,6 +16,8 @@ export function SettingsModal({
   settings,
   onUpdateSettings,
   onResetSettings,
+  mistakeCount,
+  onClearMistakes,
 }: SettingsModalProps) {
   if (!isOpen) return null;
 
@@ -225,6 +229,32 @@ export function SettingsModal({
               {settings.shoeMode === 'dealer-ace-ten' && 'Practice vs dealer Ace or 10'}
               {settings.shoeMode === 'doubling' && 'Practice doubling down situations'}
               {settings.shoeMode === 'stiff-hands' && 'Practice stiff totals vs weak dealer'}
+            </p>
+          </div>
+
+          {/* Mistake History */}
+          <div className="space-y-2 pt-3 border-t border-gray-700">
+            <label className="block text-sm font-medium text-gray-300">
+              Mistake History
+            </label>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-400">
+                {mistakeCount} {mistakeCount === 1 ? 'mistake' : 'mistakes'} recorded
+              </span>
+              <button
+                onClick={onClearMistakes}
+                disabled={mistakeCount === 0}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                  mistakeCount > 0
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                Clear History
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">
+              Mistakes are saved across sessions for &quot;Wrong History&quot; practice mode
             </p>
           </div>
         </div>
