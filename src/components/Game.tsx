@@ -23,7 +23,7 @@ export function Game() {
     canSplitHand,
   } = useGame(settings);
 
-  const { addMistake } = useMistakes();
+  const { mistakes, addMistake, clearMistakes } = useMistakes();
 
   // Track the hand that was played for showing feedback
   const [feedbackHand, setFeedbackHand] = useState<{
@@ -211,6 +211,8 @@ export function Game() {
         settings={settings}
         onUpdateSettings={updateSettings}
         onResetSettings={resetSettings}
+        mistakeCount={mistakes.length}
+        onClearMistakes={clearMistakes}
       />
     </div>
   );
