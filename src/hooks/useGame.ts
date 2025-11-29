@@ -1,7 +1,97 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { Action, GameState, CasinoRules } from '../types';
 import { DEFAULT_CASINO_RULES } from '../types';
-import { createShoe, getHandValue, canDouble, canSplit, isPair } from '../utils/deck';
+import { createShoe, getHandValue, canDouble, canSplit, isPair, getCardValue } from '../utils/deck';
+import type { Card, ShoeMode, Mistake } from '../types';
+
+// Load mistakes from localStorage for wrong-history mode validation
+function loadMistakes(): Mistake[] {
+  try {
+    const stored = localStorage.getItem('blackjack-trainer-mistakes');
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error('Failed to load mistakes:', e);
+  }
+  return [];
+}
+
+// Track recent splits to add variety (avoid showing the same pair repeatedly)
+// We track the pair value (2-11) and try to cycle through different pairs
+const recentSplitPairs: number[] = [];
+const MAX_RECENT_SPLITS = 4; // Remember last 4 pairs to avoid repetition
+
+// Check if the dealt hand matches the criteria for the current practice mode
+function isValidHandForMode(
+  playerHand: Card[],
+  dealerHand: Card[],
+  mode: ShoeMode
+): boolean {
+  const playerValue = getHandValue(playerHand);
+  const dealerUpCardValue = getCardValue(dealerHand[0]);
+
+  switch (mode) {
+    case 'splits': {
+      // Require a pair, but exclude 10-value pairs (10, J, Q, K) - always stand on those
+      if (!isPair(playerHand)) return false;
+      const pairValue = getCardValue(playerHand[0]);
+      if (pairValue === 10) return false; // Skip 10-value pairs
+      // Avoid recently seen pairs for variety (but accept if we've tried many times)
+      if (recentSplitPairs.includes(pairValue) && recentSplitPairs.length >= 2) {
+        return false;
+      }
+      return true;
+    }
+
+    case 'soft-heavy':
+      // Require a soft hand (Ace counting as 11)
+      return playerValue.isSoft && playerValue.value < 21;
+
+    case 'hard-12-16':
+      // Require hard total between 12-16
+      return !playerValue.isSoft && playerValue.value >= 12 && playerValue.value <= 16;
+
+    case 'dealer-ace-ten':
+      // Require dealer showing Ace or 10-value card
+      return dealerUpCardValue === 11 || dealerUpCardValue === 10;
+
+    case 'doubling':
+      // Require player total of 9, 10, or 11
+      return playerValue.value >= 9 && playerValue.value <= 11;
+
+    case 'stiff-hands':
+      // Require hard 12-16 AND dealer showing 2-6
+      return !playerValue.isSoft &&
+        playerValue.value >= 12 &&
+        playerValue.value <= 16 &&
+        dealerUpCardValue >= 2 &&
+        dealerUpCardValue <= 6;
+
+    case 'wrong-history': {
+      // Check if this hand matches any recorded mistake scenario
+      const mistakes = loadMistakes();
+      if (mistakes.length === 0) return true; // Fall back to accepting any hand
+
+      // Check if current hand matches any mistake scenario
+      return mistakes.some(mistake => {
+        const mistakePlayerValue = getHandValue(mistake.playerHand);
+        const mistakeDealerValue = getCardValue(mistake.dealerUpCard);
+
+        // Match by hand value and soft/hard status, plus dealer upcard value
+        return playerValue.value === mistakePlayerValue.value &&
+          playerValue.isSoft === mistakePlayerValue.isSoft &&
+          dealerUpCardValue === mistakeDealerValue;
+      });
+    }
+
+    case 'standard':
+    case 'no-tens':
+    default:
+      // No filtering needed for these modes
+      return true;
+  }
+}
 import { getStrategyForRules } from '../strategies';
 
 const INITIAL_STATS = { correct: 0, total: 0 };
@@ -54,13 +144,22 @@ export function useGame(rules: CasinoRules = DEFAULT_CASINO_RULES) {
         remainingDeck = deck4;
         attempts++;
 
-        // For splits mode, require a pair
-        if (rules.shoeMode === 'splits' && !isPair(playerHand) && attempts < maxAttempts) {
+        // Check if hand is valid for the current practice mode
+        if (!isValidHandForMode(playerHand, dealerHand, rules.shoeMode) && attempts < maxAttempts) {
           continue;
         }
 
         break;
       } while (attempts < maxAttempts);
+
+      // Track recent splits for variety
+      if (rules.shoeMode === 'splits' && isPair(playerHand)) {
+        const pairValue = getCardValue(playerHand[0]);
+        recentSplitPairs.push(pairValue);
+        if (recentSplitPairs.length > MAX_RECENT_SPLITS) {
+          recentSplitPairs.shift(); // Remove oldest
+        }
+      }
 
       // Check for blackjack
       const playerValue = getHandValue(playerHand);
