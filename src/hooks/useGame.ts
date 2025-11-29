@@ -17,6 +17,11 @@ function loadMistakes(): Mistake[] {
   return [];
 }
 
+// Track recent splits to add variety (avoid showing the same pair repeatedly)
+// We track the pair value (2-11) and try to cycle through different pairs
+const recentSplitPairs: number[] = [];
+const MAX_RECENT_SPLITS = 4; // Remember last 4 pairs to avoid repetition
+
 // Check if the dealt hand matches the criteria for the current practice mode
 function isValidHandForMode(
   playerHand: Card[],
@@ -27,9 +32,17 @@ function isValidHandForMode(
   const dealerUpCardValue = getCardValue(dealerHand[0]);
 
   switch (mode) {
-    case 'splits':
-      // Require a pair
-      return isPair(playerHand);
+    case 'splits': {
+      // Require a pair, but exclude 10-value pairs (10, J, Q, K) - always stand on those
+      if (!isPair(playerHand)) return false;
+      const pairValue = getCardValue(playerHand[0]);
+      if (pairValue === 10) return false; // Skip 10-value pairs
+      // Avoid recently seen pairs for variety (but accept if we've tried many times)
+      if (recentSplitPairs.includes(pairValue) && recentSplitPairs.length >= 2) {
+        return false;
+      }
+      return true;
+    }
 
     case 'soft-heavy':
       // Require a soft hand (Ace counting as 11)
@@ -138,6 +151,15 @@ export function useGame(rules: CasinoRules = DEFAULT_CASINO_RULES) {
 
         break;
       } while (attempts < maxAttempts);
+
+      // Track recent splits for variety
+      if (rules.shoeMode === 'splits' && isPair(playerHand)) {
+        const pairValue = getCardValue(playerHand[0]);
+        recentSplitPairs.push(pairValue);
+        if (recentSplitPairs.length > MAX_RECENT_SPLITS) {
+          recentSplitPairs.shift(); // Remove oldest
+        }
+      }
 
       // Check for blackjack
       const playerValue = getHandValue(playerHand);
